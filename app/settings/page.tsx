@@ -141,7 +141,7 @@ export default function SettingsPage() {
           </button>
         </div>
         <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-500 font-mono">
-          {`curl -X POST https://your-app.vercel.app/api/content \\`}<br />
+          {`curl -X POST https://curator-omega.vercel.app/api/content \\`}<br />
           {`  -H "x-api-token: ${apiToken.slice(0, 8)}…" \\`}<br />
           {`  -H "Content-Type: application/json" \\`}<br />
           {`  -d '{"url": "https://..."}'`}
