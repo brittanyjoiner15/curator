@@ -1,18 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+function AuthForm() {
+  const searchParams = useSearchParams()
+  const [mode, setMode] = useState<'login' | 'signup'>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'login'
+  )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const { signIn, signUp } = useAuth()
+  const { user, signIn, signUp } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (user) router.push('/library')
+  }, [user, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -23,11 +31,11 @@ export default function AuthPage() {
     if (mode === 'login') {
       const { error } = await signIn(email, password)
       if (error) setError(error)
-      else router.push('/')
+      else router.push('/library')
     } else {
       const { error } = await signUp(email, password)
       if (error) setError(error)
-      else setSuccess("Check your email to confirm your account, then sign in.")
+      else setSuccess('Check your email to confirm your account, then sign in.')
     }
 
     setLoading(false)
@@ -90,5 +98,13 @@ export default function AuthPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthForm />
+    </Suspense>
   )
 }
