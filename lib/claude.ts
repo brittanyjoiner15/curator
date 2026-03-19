@@ -1,18 +1,20 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic()
-
 export async function analyzeContent({
   type,
   title,
   description,
   text,
+  apiKey,
 }: {
   type: 'article' | 'youtube'
   title: string
   description: string
   text?: string
+  apiKey: string
 }): Promise<{ topics: string[] }> {
+  const client = new Anthropic({ apiKey })
+
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 256,

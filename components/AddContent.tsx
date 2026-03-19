@@ -1,16 +1,23 @@
 'use client'
 
 import { useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { ContentItem } from '@/types'
 
-export function AddContent({ onAdded }: { onAdded: (item: ContentItem) => void }) {
+export function AddContent({
+  onAdded,
+  session,
+}: {
+  onAdded: (item: ContentItem) => void
+  session: Session | null
+}) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!url.trim()) return
+    if (!url.trim() || !session) return
 
     setLoading(true)
     setError(null)
@@ -18,7 +25,10 @@ export function AddContent({ onAdded }: { onAdded: (item: ContentItem) => void }
     try {
       const res = await fetch('/api/content', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ url: url.trim() }),
       })
 

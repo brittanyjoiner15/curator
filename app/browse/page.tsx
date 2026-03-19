@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import { ContentCard, TopicBadge } from '@/components/ContentCard'
 import { ContentItem } from '@/types'
 
@@ -13,18 +15,28 @@ const TIME_PRESETS = [
 ]
 
 export default function BrowsePage() {
+  const { user, session, loading } = useAuth()
+  const router = useRouter()
+
   const [topics, setTopics] = useState<string[]>([])
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
-  const [maxMinutes, setMaxMinutes] = useState<number>(30)
+  const [maxMinutes, setMaxMinutes] = useState(30)
   const [suggestion, setSuggestion] = useState<ContentItem | null | undefined>(undefined)
-  const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(false)
   const [noMatch, setNoMatch] = useState(false)
 
   useEffect(() => {
-    fetch('/api/topics')
+    if (!loading && !user) router.push('/auth')
+  }, [user, loading, router])
+
+  useEffect(() => {
+    if (!session) return
+    fetch('/api/topics', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setTopics(data) })
-  }, [])
+  }, [session])
 
   function toggleTopic(topic: string) {
     setSelectedTopics(prev =>
@@ -35,7 +47,8 @@ export default function BrowsePage() {
   }
 
   async function handleSurpriseMe() {
-    setLoading(true)
+    if (!session) return
+    setFetching(true)
     setSuggestion(undefined)
     setNoMatch(false)
 
@@ -43,19 +56,20 @@ export default function BrowsePage() {
     if (selectedTopics.length) params.set('topics', selectedTopics.join(','))
 
     try {
-      const res = await fetch(`/api/suggest?${params}`)
+      const res = await fetch(`/api/suggest?${params}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
       const data = await res.json()
-      if (data.item) {
-        setSuggestion(data.item)
-      } else {
-        setNoMatch(true)
-      }
+      if (data.item) setSuggestion(data.item)
+      else setNoMatch(true)
     } catch {
       setNoMatch(true)
     } finally {
-      setLoading(false)
+      setFetching(false)
     }
   }
+
+  if (loading || !user) return null
 
   return (
     <div className="flex flex-col gap-8">
@@ -96,10 +110,8 @@ export default function BrowsePage() {
               <button
                 key={topic}
                 onClick={() => toggleTopic(topic)}
-                className={`transition-all rounded-full text-xs font-medium px-3 py-1.5 border ${
-                  selectedTopics.includes(topic)
-                    ? 'ring-2 ring-violet-400 ring-offset-1 scale-105'
-                    : 'opacity-70 hover:opacity-100'
+                className={`transition-all rounded-full ${
+                  selectedTopics.includes(topic) ? 'ring-2 ring-violet-400 ring-offset-1 scale-105' : 'opacity-70 hover:opacity-100'
                 }`}
               >
                 <TopicBadge topic={topic} />
@@ -117,16 +129,14 @@ export default function BrowsePage() {
         </div>
       )}
 
-      {/* CTA */}
       <button
         onClick={handleSurpriseMe}
-        disabled={loading}
+        disabled={fetching}
         className="w-full py-4 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 text-base"
       >
-        {loading ? 'Finding something…' : '✨ Surprise me'}
+        {fetching ? 'Finding something…' : '✨ Surprise me'}
       </button>
 
-      {/* Result */}
       {noMatch && (
         <div className="text-center py-8 text-gray-400">
           <p className="text-3xl mb-2">🤷</p>

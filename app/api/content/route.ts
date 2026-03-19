@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
+import { getAuthUser } from '@/lib/auth-server'
 import { getYouTubeVideoId, fetchYouTubeMetadata } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
 import { analyzeContent } from '@/lib/claude'
 
-function isAuthorized(req: NextRequest): boolean {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  return token === process.env.API_SECRET
-}
+export async function GET(req: NextRequest) {
+  const auth = await getAuthUser(req)
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET() {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('content_items')
     .select('*')
+    .eq('user_id', auth.userId)
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -21,8 +21,14 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await getAuthUser(req)
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!auth.anthropicApiKey) {
+    return NextResponse.json(
+      { error: 'No Anthropic API key set. Visit /settings to add one.' },
+      { status: 403 }
+    )
   }
 
   const body = await req.json()
@@ -31,11 +37,12 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // Duplicate check
+  // Duplicate check (per user)
   const { data: existing } = await supabase
     .from('content_items')
     .select('id')
     .eq('url', url)
+    .eq('user_id', auth.userId)
     .single()
 
   if (existing) return NextResponse.json({ error: 'Already in your library' }, { status: 409 })
@@ -52,11 +59,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (type === 'youtube') {
-      metadata = await fetchYouTubeMetadata(videoId!)
-    } else {
-      metadata = await scrapeArticle(url)
-    }
+    metadata = type === 'youtube'
+      ? await fetchYouTubeMetadata(videoId!)
+      : await scrapeArticle(url)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to fetch content'
     return NextResponse.json({ error: message }, { status: 422 })
@@ -69,6 +74,7 @@ export async function POST(req: NextRequest) {
       title: metadata.title,
       description: metadata.description,
       text: metadata.text,
+      apiKey: auth.anthropicApiKey,
     })
     topics = result.topics
   } catch {
@@ -80,6 +86,7 @@ export async function POST(req: NextRequest) {
     .insert({
       url,
       type,
+      user_id: auth.userId,
       title: metadata.title,
       description: metadata.description,
       thumbnail_url: metadata.thumbnail_url,

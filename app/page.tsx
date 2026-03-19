@@ -1,26 +1,38 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 import { AddContent } from '@/components/AddContent'
 import { ContentCard } from '@/components/ContentCard'
 import { ContentItem } from '@/types'
 
 export default function LibraryPage() {
+  const { user, session, loading } = useAuth()
+  const router = useRouter()
   const [items, setItems] = useState<ContentItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [itemsLoading, setItemsLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/content')
+    if (!loading && !user) router.push('/auth')
+  }, [user, loading, router])
+
+  useEffect(() => {
+    if (!session) return
+    fetch('/api/content', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) setItems(data)
-      })
-      .finally(() => setLoading(false))
-  }, [])
+      .then(data => { if (Array.isArray(data)) setItems(data) })
+      .finally(() => setItemsLoading(false))
+  }, [session])
 
   function handleAdded(item: ContentItem) {
     setItems(prev => [item, ...prev])
   }
+
+  if (loading) return null
+  if (!user) return null
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,9 +41,9 @@ export default function LibraryPage() {
         <p className="text-sm text-gray-500">Paste a YouTube or article URL to save it.</p>
       </div>
 
-      <AddContent onAdded={handleAdded} />
+      <AddContent onAdded={handleAdded} session={session} />
 
-      {loading ? (
+      {itemsLoading ? (
         <div className="flex flex-col gap-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-28 bg-gray-100 rounded-xl animate-pulse" />
