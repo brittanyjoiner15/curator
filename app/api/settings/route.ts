@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('user_settings')
-    .select('anthropic_api_key, api_token')
+    .select('anthropic_api_key, api_token, categories')
     .eq('user_id', auth.userId)
     .single()
 
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     has_anthropic_key: !!data?.anthropic_api_key,
     api_token: data?.api_token,
+    categories: data?.categories ?? [],
   })
 }
 
@@ -29,12 +30,15 @@ export async function PUT(req: NextRequest) {
   const body = await req.json()
   const supabase = createServiceClient()
 
-  const updates: Record<string, string> = {}
+  const updates: Record<string, unknown> = {}
   if (typeof body.anthropic_api_key === 'string' && body.anthropic_api_key.trim()) {
     updates.anthropic_api_key = body.anthropic_api_key.trim()
   }
   if (body.regenerate_token) {
     updates.api_token = crypto.randomBytes(32).toString('hex')
+  }
+  if (Array.isArray(body.categories)) {
+    updates.categories = body.categories.map((c: unknown) => String(c).trim()).filter(Boolean)
   }
 
   if (!Object.keys(updates).length) {

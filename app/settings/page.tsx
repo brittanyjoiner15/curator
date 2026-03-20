@@ -16,6 +16,10 @@ export default function SettingsPage() {
   const [regenerating, setRegenerating] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const [newCategory, setNewCategory] = useState('')
+  const [savingCategories, setSavingCategories] = useState(false)
+  const [categoriesSaveMessage, setCategoriesSaveMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading && !user) router.push('/auth')
@@ -30,6 +34,7 @@ export default function SettingsPage() {
       .then(data => {
         setHasKey(data.has_anthropic_key)
         setApiToken(data.api_token ?? '')
+        setCategories(data.categories ?? [])
         setSettingsLoading(false)
       })
   }, [session])
@@ -70,6 +75,33 @@ export default function SettingsPage() {
     const data = await res.json()
     if (data.api_token) setApiToken(data.api_token)
     setRegenerating(false)
+  }
+
+  function addCategory() {
+    const trimmed = newCategory.trim()
+    if (!trimmed || categories.includes(trimmed)) return
+    setCategories(prev => [...prev, trimmed])
+    setNewCategory('')
+  }
+
+  function removeCategory(cat: string) {
+    setCategories(prev => prev.filter(c => c !== cat))
+  }
+
+  async function saveCategories() {
+    if (!session) return
+    setSavingCategories(true)
+    setCategoriesSaveMessage(null)
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ categories }),
+    })
+    setCategoriesSaveMessage(res.ok ? 'Saved!' : 'Failed to save.')
+    setSavingCategories(false)
   }
 
   async function copyToken() {
@@ -118,6 +150,52 @@ export default function SettingsPage() {
           className="self-start px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save key'}
+        </button>
+      </section>
+
+      {/* Categories */}
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="font-semibold text-gray-900">Categories</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Define your own categories. When set, Claude will only assign these when saving content.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {categories.map(cat => (
+            <span key={cat} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 text-sm rounded-lg border border-violet-200">
+              {cat}
+              <button onClick={() => removeCategory(cat)} className="text-violet-400 hover:text-violet-700 leading-none">&times;</button>
+            </span>
+          ))}
+          {categories.length === 0 && (
+            <p className="text-sm text-gray-400">No categories defined — Claude will pick its own.</p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newCategory}
+            onChange={e => setNewCategory(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addCategory()}
+            placeholder="e.g. programming, design, finance…"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+          />
+          <button
+            onClick={addCategory}
+            disabled={!newCategory.trim()}
+            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+          >
+            Add
+          </button>
+        </div>
+        {categoriesSaveMessage && <p className="text-sm text-emerald-600">{categoriesSaveMessage}</p>}
+        <button
+          onClick={saveCategories}
+          disabled={savingCategories}
+          className="self-start px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+        >
+          {savingCategories ? 'Saving…' : 'Save categories'}
         </button>
       </section>
 

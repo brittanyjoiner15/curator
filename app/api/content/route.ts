@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       description: metadata.description,
       text: metadata.text,
       apiKey: auth.anthropicApiKey,
+      categories: auth.categories.length ? auth.categories : undefined,
     })
     topics = result.topics
   } catch {

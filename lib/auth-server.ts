@@ -4,6 +4,7 @@ import { createServiceClient } from './supabase'
 export interface AuthUser {
   userId: string
   anthropicApiKey: string | null
+  categories: string[]
 }
 
 export async function getAuthUser(req: NextRequest): Promise<AuthUser | null> {
@@ -17,10 +18,14 @@ export async function getAuthUser(req: NextRequest): Promise<AuthUser | null> {
     if (user) {
       const { data: settings } = await supabase
         .from('user_settings')
-        .select('anthropic_api_key')
+        .select('anthropic_api_key, categories')
         .eq('user_id', user.id)
         .single()
-      return { userId: user.id, anthropicApiKey: settings?.anthropic_api_key ?? null }
+      return {
+        userId: user.id,
+        anthropicApiKey: settings?.anthropic_api_key ?? null,
+        categories: settings?.categories ?? [],
+      }
     }
   }
 
@@ -29,11 +34,15 @@ export async function getAuthUser(req: NextRequest): Promise<AuthUser | null> {
   if (apiToken) {
     const { data } = await supabase
       .from('user_settings')
-      .select('user_id, anthropic_api_key')
+      .select('user_id, anthropic_api_key, categories')
       .eq('api_token', apiToken)
       .single()
     if (data) {
-      return { userId: data.user_id, anthropicApiKey: data.anthropic_api_key }
+      return {
+        userId: data.user_id,
+        anthropicApiKey: data.anthropic_api_key,
+        categories: data.categories ?? [],
+      }
     }
   }
 
