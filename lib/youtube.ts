@@ -6,6 +6,7 @@ const VIDEO_PLATFORMS = [
   'wistia.net',
   'watch.screencastify.com',
   'share.descript.com',
+  'starterstory.com',
 ]
 
 export function isVideoUrl(url: string): boolean {
