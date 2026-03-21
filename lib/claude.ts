@@ -8,7 +8,7 @@ export async function analyzeContent({
   apiKey,
   categories,
 }: {
-  type: 'article' | 'youtube'
+  type: 'article' | 'youtube' | 'video'
   title: string
   description: string
   text?: string
