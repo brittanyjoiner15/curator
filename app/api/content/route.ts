@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
-import { getYouTubeVideoId, fetchYouTubeMetadata } from '@/lib/youtube'
+import { getYouTubeVideoId, fetchYouTubeMetadata, isVideoUrl } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
 import { analyzeContent } from '@/lib/claude'
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: 'Already in your library' }, { status: 409 })
 
   const videoId = getYouTubeVideoId(url)
-  const type = videoId ? 'youtube' : 'article'
+  const type = videoId ? 'youtube' : isVideoUrl(url) ? 'video' : 'article'
 
   let metadata: {
     title: string

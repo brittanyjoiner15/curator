@@ -40,9 +40,9 @@ export function ContentCard({
   onToggleRead?: (id: string, read: boolean) => void
 }) {
   const durationLabel =
-    item.type === 'youtube'
-      ? `${item.duration_minutes} min video`
-      : `${item.duration_minutes} min read`
+    item.type === 'article'
+      ? `${item.duration_minutes} min read`
+      : `${item.duration_minutes} min video`
 
   const hasActions = onDelete || onToggleRead
 
@@ -64,13 +64,13 @@ export function ContentCard({
               unoptimized
             />
             <span className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-              {item.type === 'youtube' ? '▶' : '📄'} {item.duration_minutes}m
+              {item.type === 'article' ? '📄' : '▶'} {item.duration_minutes}m
             </span>
           </div>
         )}
         <div className="flex flex-col gap-1.5 p-3 min-w-0">
           <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
-            {item.type === 'youtube' ? 'YouTube' : 'Article'} · {durationLabel}
+            {item.type === 'youtube' ? 'YouTube' : item.type === 'video' ? 'Video' : 'Article'} · {durationLabel}
           </p>
           <h3 className="font-semibold text-gray-900 leading-snug group-hover:text-violet-600 transition-colors line-clamp-2">
             {item.title}

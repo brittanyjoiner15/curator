@@ -1,7 +1,7 @@
 export interface ContentItem {
   id: string
   url: string
-  type: 'article' | 'youtube'
+  type: 'article' | 'youtube' | 'video'
   title: string
   description: string | null
   duration_minutes: number

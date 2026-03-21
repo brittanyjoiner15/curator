@@ -1,8 +1,13 @@
 import * as cheerio from 'cheerio'
 
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (compatible; Curator/1.0)',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+}
+
 export async function scrapeArticle(url: string) {
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Curator/1.0)' },
+    headers: FETCH_HEADERS,
     signal: AbortSignal.timeout(10000),
   })
 
@@ -23,6 +28,20 @@ export async function scrapeArticle(url: string) {
 
   const thumbnail_url =
     $('meta[property="og:image"]').attr('content') || null
+
+  // Starter Story: prefer transcript content
+  const transcript = $('#tab-pane-transcript-right').text().replace(/\s+/g, ' ').trim()
+  if (transcript.length > 100) {
+    const wordCount = transcript.split(' ').filter(Boolean).length
+    const duration_minutes = Math.max(1, Math.ceil(wordCount / 130)) // ~130 wpm speaking pace
+    return {
+      title: title.trim(),
+      description: description.trim(),
+      thumbnail_url,
+      text: transcript.slice(0, 3000),
+      duration_minutes,
+    }
+  }
 
   // Strip noise
   $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="menu"], [class*="ad-"], [id*="nav"]').remove()

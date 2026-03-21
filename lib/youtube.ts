@@ -1,3 +1,21 @@
+const VIDEO_PLATFORMS = [
+  'tella.tv',
+  'vimeo.com',
+  'loom.com',
+  'wistia.com',
+  'wistia.net',
+  'watch.screencastify.com',
+  'share.descript.com',
+]
+
+export function isVideoUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace('www.', '')
+    return VIDEO_PLATFORMS.some(p => hostname === p || hostname.endsWith('.' + p))
+  } catch {}
+  return false
+}
+
 export function getYouTubeVideoId(url: string): string | null {
   try {
     const u = new URL(url)
