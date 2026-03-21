@@ -1,19 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import type { Session } from '@supabase/supabase-js'
 import { ContentItem } from '@/types'
 
-export function AddContent({
+function AddContentInner({
   onAdded,
   session,
-  initialUrl = '',
 }: {
   onAdded: (item: ContentItem) => void
   session: Session | null
-  initialUrl?: string
 }) {
-  const [url, setUrl] = useState(initialUrl)
+  const searchParams = useSearchParams()
+  const [url, setUrl] = useState(searchParams.get('link') ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -72,5 +72,13 @@ export function AddContent({
       </div>
       {error && <p className="text-sm text-red-500 px-1">{error}</p>}
     </form>
+  )
+}
+
+export function AddContent(props: { onAdded: (item: ContentItem) => void; session: Session | null }) {
+  return (
+    <Suspense fallback={null}>
+      <AddContentInner {...props} />
+    </Suspense>
   )
 }
