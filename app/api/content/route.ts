@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const url: string = body?.url?.trim()
   if (!url) return NextResponse.json({ error: 'URL is required' }, { status: 400 })
+  const fallbackTitle: string | undefined = typeof body.title === 'string' ? body.title.trim() : undefined
 
   const supabase = createServiceClient()
 
@@ -62,9 +63,12 @@ export async function POST(req: NextRequest) {
     metadata = type === 'youtube'
       ? await fetchYouTubeMetadata(videoId!)
       : await scrapeArticle(url)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to fetch content'
-    return NextResponse.json({ error: message }, { status: 422 })
+  } catch {
+    if (fallbackTitle) {
+      metadata = { title: fallbackTitle, description: '', thumbnail_url: null, duration_minutes: 0 }
+    } else {
+      return NextResponse.json({ error: 'Failed to fetch content. Provide a "title" field to save anyway.' }, { status: 422 })
+    }
   }
 
   let topics: string[]
