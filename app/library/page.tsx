@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { AddContent } from '@/components/AddContent'
 import { ContentCard } from '@/components/ContentCard'
@@ -10,6 +10,8 @@ import { ContentItem } from '@/types'
 export default function LibraryPage() {
   const { user, session, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialUrl = searchParams.get('link') ?? ''
   const [items, setItems] = useState<ContentItem[]>([])
   const [itemsLoading, setItemsLoading] = useState(true)
   const [showRead, setShowRead] = useState(false)
@@ -76,7 +78,7 @@ export default function LibraryPage() {
         <p className="text-sm text-gray-500">Paste a YouTube or article URL to save it.</p>
       </div>
 
-      <AddContent onAdded={handleAdded} session={session} />
+      <AddContent onAdded={handleAdded} session={session} initialUrl={initialUrl} />
 
       <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 self-start">
         <button

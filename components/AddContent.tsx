@@ -7,11 +7,13 @@ import { ContentItem } from '@/types'
 export function AddContent({
   onAdded,
   session,
+  initialUrl = '',
 }: {
   onAdded: (item: ContentItem) => void
   session: Session | null
+  initialUrl?: string
 }) {
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(initialUrl)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
