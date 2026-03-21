@@ -8,4 +8,5 @@ export interface ContentItem {
   topics: string[]
   thumbnail_url: string | null
   created_at: string
+  read: boolean
 }

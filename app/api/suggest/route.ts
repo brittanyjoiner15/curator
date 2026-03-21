@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     .from('content_items')
     .select('*')
     .eq('user_id', auth.userId)
+    .eq('read', false)
     .lte('duration_minutes', maxMinutes)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
