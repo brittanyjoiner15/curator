@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       : await scrapeArticle(url)
   } catch {
     if (fallbackTitle) {
-      metadata = { title: fallbackTitle, description: '', thumbnail_url: null, duration_minutes: 0 }
+      metadata = { title: fallbackTitle, description: '', thumbnail_url: null, duration_minutes: 5 }
     } else {
       return NextResponse.json({ error: 'Failed to fetch content. Provide a "title" field to save anyway.' }, { status: 422 })
     }
