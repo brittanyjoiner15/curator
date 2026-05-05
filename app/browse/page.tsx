@@ -147,7 +147,28 @@ export default function BrowsePage() {
       {suggestion && (
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold text-gray-500 text-center">Here's something for you →</p>
-          <ContentCard item={suggestion} large />
+          <ContentCard
+            item={suggestion}
+            large
+            onDelete={async (id) => {
+              await fetch(`/api/content/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${session!.access_token}` },
+              })
+              setSuggestion(undefined)
+            }}
+            onToggleRead={async (id, read) => {
+              await fetch(`/api/content/${id}`, {
+                method: 'PATCH',
+                headers: {
+                  Authorization: `Bearer ${session!.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ read }),
+              })
+              setSuggestion(prev => prev ? { ...prev, read } : prev)
+            }}
+          />
           <button
             onClick={handleSurpriseMe}
             className="w-full py-3 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-xl transition-colors"
