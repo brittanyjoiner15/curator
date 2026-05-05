@@ -3,14 +3,20 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { Session } from '@supabase/supabase-js'
-import { ContentItem } from '@/types'
+import { ContentItem, WishlistItem } from '@/types'
+
+export type AddResult =
+  | { type: 'content'; item: ContentItem }
+  | { type: 'product'; item: WishlistItem }
 
 function AddContentInner({
   onAdded,
   session,
+  placeholder = 'Paste a URL…',
 }: {
-  onAdded: (item: ContentItem) => void
+  onAdded: (result: AddResult) => void
   session: Session | null
+  placeholder?: string
 }) {
   const searchParams = useSearchParams()
   const [url, setUrl] = useState(searchParams.get('link') ?? '')
@@ -25,7 +31,7 @@ function AddContentInner({
     setError(null)
 
     try {
-      const res = await fetch('/api/content', {
+      const res = await fetch('/api/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,7 +47,7 @@ function AddContentInner({
         return
       }
 
-      onAdded(data)
+      onAdded(data as AddResult)
       setUrl('')
     } catch {
       setError('Failed to reach the server')
@@ -57,7 +63,7 @@ function AddContentInner({
           type="url"
           value={url}
           onChange={e => setUrl(e.target.value)}
-          placeholder="Paste a YouTube or article URL…"
+          placeholder={placeholder}
           disabled={loading}
           className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50 bg-white"
           required
@@ -75,7 +81,11 @@ function AddContentInner({
   )
 }
 
-export function AddContent(props: { onAdded: (item: ContentItem) => void; session: Session | null }) {
+export function AddContent(props: {
+  onAdded: (result: AddResult) => void
+  session: Session | null
+  placeholder?: string
+}) {
   return (
     <Suspense fallback={null}>
       <AddContentInner {...props} />

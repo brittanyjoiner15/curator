@@ -66,3 +66,77 @@ Rules:
 
   return JSON.parse(jsonMatch[0])
 }
+
+export async function classifyUrl({
+  title,
+  description,
+  apiKey,
+}: {
+  title: string
+  description: string
+  apiKey: string
+}): Promise<{ type: 'content' | 'product' }> {
+  const client = new Anthropic({ apiKey })
+
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 32,
+    messages: [
+      {
+        role: 'user',
+        content: `Is this a product page (something to buy) or content (article/video to read/watch)?
+
+Title: ${title}
+Description: ${description.slice(0, 200)}
+
+Return exactly: {"type": "product"} or {"type": "content"}`,
+      },
+    ],
+  })
+
+  const content = message.content[0]
+  if (content.type !== 'text') return { type: 'content' }
+  const match = content.text.match(/\{[\s\S]*\}/)
+  if (!match) return { type: 'content' }
+  const result = JSON.parse(match[0])
+  return { type: result.type === 'product' ? 'product' : 'content' }
+}
+
+export async function analyzeProduct({
+  title,
+  description,
+  apiKey,
+  categories,
+}: {
+  title: string
+  description: string
+  apiKey: string
+  categories: string[]
+}): Promise<{ category: string }> {
+  const client = new Anthropic({ apiKey })
+
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 64,
+    messages: [
+      {
+        role: 'user',
+        content: `Pick the single best category for this product. Return ONLY a JSON object — no explanation.
+
+Title: ${title}
+Description: ${description.slice(0, 300)}
+
+Categories: ${categories.join(', ')}
+
+Return exactly: {"category": "category_name"}
+Use the exact name as given.`,
+      },
+    ],
+  })
+
+  const content = message.content[0]
+  if (content.type !== 'text') throw new Error('Unexpected response')
+  const jsonMatch = content.text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('No JSON in response')
+  return JSON.parse(jsonMatch[0])
+}

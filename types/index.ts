@@ -1,3 +1,15 @@
+export interface WishlistItem {
+  id: string
+  url: string
+  title: string
+  description: string | null
+  price: string | null
+  category: string
+  thumbnail_url: string | null
+  created_at: string
+  purchased: boolean
+}
+
 export interface ContentItem {
   id: string
   url: string

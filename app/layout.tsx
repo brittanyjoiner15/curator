@@ -3,6 +3,7 @@ import './globals.css'
 import Link from 'next/link'
 import { AuthProvider } from '@/lib/auth-context'
 import { NavUser } from '@/components/NavUser'
+import { BottomNav } from '@/components/BottomNav'
 
 export const metadata: Metadata = {
   title: 'Stash',
@@ -23,9 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <NavUser />
               </div>
             </header>
-            <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
+            <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 pb-24">
               {children}
             </main>
+            <BottomNav />
           </div>
         </AuthProvider>
       </body>
