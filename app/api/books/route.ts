@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
+import { syncBookToHardcover } from '@/lib/hardcover'
 
 export async function GET(req: NextRequest) {
   const auth = await getAuthUser(req)
@@ -47,5 +48,30 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  // Best-effort Hardcover sync
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('hardcover_api_key')
+    .eq('user_id', auth.userId)
+    .single()
+
+  let hardcover: { success: boolean; slug?: string; error?: string } | null = null
+  if (settings?.hardcover_api_key) {
+    hardcover = await syncBookToHardcover({
+      title,
+      isbn13: isbn_13 ?? null,
+      isbn10: isbn_10 ?? null,
+      apiKey: settings.hardcover_api_key,
+    })
+
+    if (hardcover?.success && hardcover.slug) {
+      await supabase
+        .from('book_items')
+        .update({ hardcover_slug: hardcover.slug })
+        .eq('id', data.id)
+    }
+  }
+
+  return NextResponse.json({ ...data, hardcover_slug: hardcover?.slug ?? null, hardcover })
 }

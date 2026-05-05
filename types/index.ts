@@ -9,6 +9,7 @@ export interface BookItem {
   isbn_13: string | null
   isbn_10: string | null
   page_count: number | null
+  hardcover_slug: string | null
   read: boolean
   created_at: string
 }

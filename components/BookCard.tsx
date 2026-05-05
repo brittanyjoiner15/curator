@@ -71,11 +71,23 @@ export function BookCard({
           </div>
         </div>
 
-        {(item.isbn_13 || item.isbn_10) && (
-          <p className="text-xs text-gray-400">
-            ISBN: {item.isbn_13 ?? item.isbn_10}
-          </p>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          {(item.isbn_13 || item.isbn_10) && (
+            <p className="text-xs text-gray-400">
+              ISBN: {item.isbn_13 ?? item.isbn_10}
+            </p>
+          )}
+          {item.hardcover_slug && (
+            <a
+              href={`https://hardcover.app/books/${item.hardcover_slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-violet-600 hover:underline"
+            >
+              View on Hardcover
+            </a>
+          )}
+        </div>
       </div>
     </div>
   )

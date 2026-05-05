@@ -110,6 +110,12 @@ function CapturePageInner() {
             </span>
           </div>
 
+          {searchResult.type === 'book' && searchResult.hardcover && (
+            <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${searchResult.hardcover.success ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+              <span>{searchResult.hardcover.success ? '✓ Added to Hardcover "Want to Read"' : `Hardcover: ${searchResult.hardcover.error}`}</span>
+            </div>
+          )}
+
           {searchResult.type === 'watch' ? (
             <WatchCard item={searchResult.item} />
           ) : (

@@ -14,7 +14,7 @@ export type SearchResult =
 
 export type SearchCaptureResult =
   | { type: 'watch'; item: WatchItem }
-  | { type: 'book'; item: BookItem }
+  | { type: 'book'; item: BookItem; hardcover: { success: boolean; error?: string } | null }
 
 function SearchCaptureInner({
   onAdded,
@@ -123,7 +123,7 @@ function SearchCaptureInner({
       onAdded(
         selected.kind === 'watch'
           ? { type: 'watch', item: data as WatchItem }
-          : { type: 'book', item: data as BookItem }
+          : { type: 'book', item: data as BookItem, hardcover: data.hardcover ?? null }
       )
       setQuery('')
       setResults([])

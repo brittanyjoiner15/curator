@@ -20,6 +20,10 @@ export default function SettingsPage() {
   const [newCategory, setNewCategory] = useState('')
   const [savingCategories, setSavingCategories] = useState(false)
   const [categoriesSaveMessage, setCategoriesSaveMessage] = useState<string | null>(null)
+  const [hasHardcoverKey, setHasHardcoverKey] = useState(false)
+  const [newHardcoverKey, setNewHardcoverKey] = useState('')
+  const [savingHardcover, setSavingHardcover] = useState(false)
+  const [hardcoverSaveMessage, setHardcoverSaveMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading && !user) router.push('/auth')
@@ -33,6 +37,7 @@ export default function SettingsPage() {
       .then(r => r.json())
       .then(data => {
         setHasKey(data.has_anthropic_key)
+        setHasHardcoverKey(data.has_hardcover_key)
         setApiToken(data.api_token ?? '')
         setCategories(data.categories ?? [])
         setSettingsLoading(false)
@@ -59,6 +64,25 @@ export default function SettingsPage() {
       setSaveMessage('Failed to save.')
     }
     setSaving(false)
+  }
+
+  async function saveHardcoverKey() {
+    if (!session || !newHardcoverKey.trim()) return
+    setSavingHardcover(true)
+    setHardcoverSaveMessage(null)
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hardcover_api_key: newHardcoverKey }),
+    })
+    if (res.ok) {
+      setHasHardcoverKey(true)
+      setNewHardcoverKey('')
+      setHardcoverSaveMessage('Key saved!')
+    } else {
+      setHardcoverSaveMessage('Failed to save.')
+    }
+    setSavingHardcover(false)
   }
 
   async function regenerateToken() {
@@ -150,6 +174,32 @@ export default function SettingsPage() {
           className="self-start px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save key'}
+        </button>
+      </section>
+
+      {/* Hardcover */}
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="font-semibold text-gray-900">Hardcover API key</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            When set, saving a book automatically adds it to your Hardcover "Want to Read" list.{' '}
+            {hasHardcoverKey && <span className="text-emerald-600 font-medium">Key is set ✓</span>}
+          </p>
+        </div>
+        <input
+          type="password"
+          value={newHardcoverKey}
+          onChange={e => setNewHardcoverKey(e.target.value)}
+          placeholder={hasHardcoverKey ? 'Enter new key to replace…' : 'Paste your Hardcover API key…'}
+          className="px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 font-mono"
+        />
+        {hardcoverSaveMessage && <p className="text-sm text-emerald-600">{hardcoverSaveMessage}</p>}
+        <button
+          onClick={saveHardcoverKey}
+          disabled={savingHardcover || !newHardcoverKey.trim()}
+          className="self-start px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+        >
+          {savingHardcover ? 'Saving…' : 'Save key'}
         </button>
       </section>
 
