@@ -36,20 +36,20 @@ function SurpriseIcon({ className }: { className?: string }) {
   )
 }
 
-function SettingsIcon({ className }: { className?: string }) {
+function WatchlistIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75.125-.125-14.25A1.125 1.125 0 0 1 3.375 3h17.25a1.125 1.125 0 0 1 1.125 1.125V18.375c0 .621-.504 1.125-1.125 1.125m-17.25 0h17.25M12 9.75 9.75 12 12 14.25l2.25-2.25L12 9.75Z" />
     </svg>
   )
 }
 
 const NAV_ITEMS = [
-  { href: '/library',  label: 'Library',  Icon: LibraryIcon  },
-  { href: '/wishlist', label: 'Wishlist', Icon: WishlistIcon },
-  { href: '/capture',  label: 'Capture',  Icon: CaptureIcon, primary: true },
-  { href: '/browse',   label: 'Surprise', Icon: SurpriseIcon },
-  { href: '/settings', label: 'Settings', Icon: SettingsIcon },
+  { href: '/library',   label: 'Library',   Icon: LibraryIcon   },
+  { href: '/wishlist',  label: 'Wishlist',  Icon: WishlistIcon  },
+  { href: '/capture',   label: 'Capture',   Icon: CaptureIcon,  primary: true },
+  { href: '/watchlist', label: 'Watchlist', Icon: WatchlistIcon },
+  { href: '/browse',    label: 'Surprise',  Icon: SurpriseIcon  },
 ]
 
 export function BottomNav() {
