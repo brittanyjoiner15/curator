@@ -66,6 +66,8 @@ function SearchCaptureInner({
             )
           )
         }
+      } catch {
+        // search errors are non-fatal
       } finally {
         setSearching(false)
       }

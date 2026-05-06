@@ -63,6 +63,30 @@ export async function findHardcoverBook(
   return null
 }
 
+// Hardcover platform_id 8 = ISBN. Same call the hardcover.app web form makes.
+export async function createHardcoverBook(
+  isbn: string,
+  apiKey: string
+): Promise<{ bookId: number; slug: string } | null> {
+  const data = await gql<any>(`
+    mutation CreateBook($externalId: String!, $platformId: Int!) {
+      upsert_book(book: { platform_id: $platformId, external_id: $externalId }) {
+        errors
+        book {
+          id
+          slug
+        }
+      }
+    }
+  `, { externalId: isbn.replace(/[-\s]/g, ''), platformId: 8 }, apiKey)
+
+  const result = data?.data?.upsert_book
+  const id = result?.book?.id
+  const slug = result?.book?.slug
+  if (id && slug) return { bookId: parseInt(String(id), 10), slug }
+  return null
+}
+
 export async function addToWantToRead(
   bookId: number,
   apiKey: string
@@ -93,7 +117,11 @@ export async function syncBookToHardcover({
   apiKey: string
 }): Promise<{ success: boolean; slug?: string; error?: string }> {
   try {
-    const book = await findHardcoverBook(isbn13, isbn10, title, apiKey)
+    let book = await findHardcoverBook(isbn13, isbn10, title, apiKey)
+    if (!book) {
+      const isbn = isbn13 ?? isbn10
+      if (isbn) book = await createHardcoverBook(isbn, apiKey)
+    }
     if (!book) {
       return { success: false, error: 'Book not found on Hardcover. You can add it manually at hardcover.app.' }
     }
