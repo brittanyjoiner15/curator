@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -lat /var/folders/*/T/ 2>/dev/null | head -20; echo \"---\"; ls -lat /tmp/ 2>/dev/null | grep -iE \"image|png|jpg|claude\" | head -10)",
+      "Read(//private/var/folders/**)",
+      "Read(//private/tmp/**)",
+      "Bash(find /var/folders -name \"*.png\" -newer /tmp/claude-501/cache-break-state-247648e3-d9e1-4f1a-acad-3f272638af88.json 2>/dev/null | head -5; echo \"---\"; find /tmp -name \"*.png\" 2>/dev/null | head -5; echo \"---\"; find ~/Library/Caches -name \"*.png\" -newer /tmp/claude-501/cache-break-state-5b236b71-3231-4e2b-a9c5-2ca7a9a39e5b.json 2>/dev/null | head -10)",
+      "Read(//Users/brittany/Library/Caches/**)",
+      "Bash(find ~/Downloads ~/Desktop ~/Pictures /tmp /var/folders -name \"*.png\" -newer ~/Library/Caches/com.raycast.macos/Clipboard/1ddc505caf43a05584aa0f61c2b091a1ee58f6b6cc941ed12dadb892b559bc1c.png 2>/dev/null | head -20)",
+      "Read(//Users/brittany/Downloads/**)",
+      "Read(//Users/brittany/Desktop/**)"
+    ]
+  }
+}
