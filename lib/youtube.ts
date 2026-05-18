@@ -40,7 +40,7 @@ function parseDuration(iso: string): number {
 
 export async function fetchYouTubeMetadata(videoId: string) {
   const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${process.env.YOUTUBE_API_KEY}`
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${process.env.GOOGLE_API_KEY}`
   )
   const data = await res.json()
   if (!data.items?.length) throw new Error('Video not found')

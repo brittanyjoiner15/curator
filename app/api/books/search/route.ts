@@ -9,6 +9,6 @@ export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q')?.trim()
   if (!query) return NextResponse.json([])
 
-  const results = await searchBooks(query, process.env.GOOGLE_BOOKS_API_KEY)
+  const results = await searchBooks(query, process.env.GOOGLE_API_KEY)
   return NextResponse.json(results)
 }
