@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
 import { captureServerException } from '@/lib/posthog-server'
+import { serverLog } from '@/lib/server-logs'
 import { getYouTubeVideoId, fetchYouTubeMetadata, isVideoUrl } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
 import { scrapeUrl } from '@/lib/scrape'
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
     let metadata: { title: string; description: string; thumbnail_url: string | null; duration_minutes: number; text?: string }
     try {
       metadata = videoId ? await fetchYouTubeMetadata(videoId) : await scrapeArticle(url)
-    } catch {
+    } catch (err) {
+      serverLog.warn('Video metadata fetch failed, falling back to URL as title', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
       metadata = { title: url, description: '', thumbnail_url: null, duration_minutes: 5 }
     }
 
@@ -45,7 +47,9 @@ export async function POST(req: NextRequest) {
       try {
         const result = await analyzeContent({ type, title: metadata.title, description: metadata.description, text: metadata.text, apiKey: auth.anthropicApiKey, categories: auth.categories.length ? auth.categories : undefined })
         topics = result.topics
-      } catch {}
+      } catch (err) {
+        serverLog.warn('AI content analysis failed, saving without topics', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
+      }
     }
 
     const { data, error } = await supabase
@@ -64,7 +68,8 @@ export async function POST(req: NextRequest) {
   let scraped: Awaited<ReturnType<typeof scrapeUrl>>
   try {
     scraped = await scrapeUrl(url)
-  } catch {
+  } catch (err) {
+    serverLog.warn('URL scrape failed, falling back to URL as title', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
     scraped = { title: url, description: '', thumbnail_url: null, price: null, text: '', duration_minutes: 5 }
   }
 
@@ -76,7 +81,9 @@ export async function POST(req: NextRequest) {
     try {
       const result = await classifyUrl({ title: scraped.title, description: scraped.description, apiKey: auth.anthropicApiKey })
       itemType = result.type
-    } catch {}
+    } catch (err) {
+      serverLog.warn('AI URL classification failed, defaulting to content', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
+    }
   }
 
   if (itemType === 'product') {
@@ -93,7 +100,9 @@ export async function POST(req: NextRequest) {
       try {
         const result = await analyzeProduct({ title: scraped.title, description: scraped.description, apiKey: auth.anthropicApiKey, categories: WISHLIST_CATEGORIES })
         if (WISHLIST_CATEGORIES.includes(result.category)) category = result.category
-      } catch {}
+      } catch (err) {
+        serverLog.warn('AI product analysis failed, using default category', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
+      }
     }
 
     const { data, error } = await supabase
@@ -122,7 +131,9 @@ export async function POST(req: NextRequest) {
     try {
       const result = await analyzeContent({ type: 'article', title: scraped.title, description: scraped.description, text: scraped.text, apiKey: auth.anthropicApiKey, categories: auth.categories.length ? auth.categories : undefined })
       topics = result.topics
-    } catch {}
+    } catch (err) {
+      serverLog.warn('AI content analysis failed, saving without topics', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
+    }
   }
 
   const { data, error } = await supabase

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
 import { captureServerException } from '@/lib/posthog-server'
+import { serverLog } from '@/lib/server-logs'
 import { syncBookToHardcover } from '@/lib/hardcover'
 
 export async function GET(req: NextRequest) {
@@ -77,6 +78,8 @@ export async function POST(req: NextRequest) {
         .from('book_items')
         .update({ hardcover_slug: hardcover.slug })
         .eq('id', data.id)
+    } else if (hardcover && !hardcover.success) {
+      serverLog.warn('Hardcover sync failed', { route: '/api/books', book_title: title, error: hardcover.error, posthogDistinctId: auth.userId })
     }
   }
 

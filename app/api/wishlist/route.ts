@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
 import { captureServerException } from '@/lib/posthog-server'
+import { serverLog } from '@/lib/server-logs'
 import { scrapeProduct } from '@/lib/product'
 import { analyzeProduct } from '@/lib/claude'
 
@@ -47,7 +48,8 @@ export async function POST(req: NextRequest) {
   let metadata: { title: string; description: string; thumbnail_url: string | null; price: string | null }
   try {
     metadata = await scrapeProduct(url)
-  } catch {
+  } catch (err) {
+    serverLog.warn('Product scrape failed, falling back to URL as title', { route: '/api/wishlist', url, error: String(err), posthogDistinctId: auth.userId })
     metadata = { title: url, description: '', thumbnail_url: null, price: null }
   }
 
@@ -63,7 +65,9 @@ export async function POST(req: NextRequest) {
       if (WISHLIST_CATEGORIES.includes(result.category)) {
         category = result.category
       }
-    } catch {}
+    } catch (err) {
+      serverLog.warn('AI product analysis failed, using default category', { route: '/api/wishlist', url, error: String(err), posthogDistinctId: auth.userId })
+    }
   }
 
   const { data, error } = await supabase

@@ -1,4 +1,5 @@
 import { PostHog } from 'posthog-node'
+import { serverLog } from '@/lib/server-logs'
 
 let client: PostHog | null = null
 
@@ -21,4 +22,8 @@ export function captureServerException(
 ) {
   const err = error instanceof Error ? error : new Error(String(error))
   getPostHogServer().captureException(err, distinctId, properties)
+  serverLog.error(err.message, {
+    route: typeof properties?.route === 'string' ? properties.route : undefined,
+    posthogDistinctId: distinctId,
+  })
 }

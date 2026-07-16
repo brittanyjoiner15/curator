@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
 import { captureServerException } from '@/lib/posthog-server'
+import { serverLog } from '@/lib/server-logs'
 import { getYouTubeVideoId, fetchYouTubeMetadata, isVideoUrl } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
 import { analyzeContent } from '@/lib/claude'
@@ -67,7 +68,8 @@ export async function POST(req: NextRequest) {
     metadata = type === 'youtube'
       ? await fetchYouTubeMetadata(videoId!)
       : await scrapeArticle(url)
-  } catch {
+  } catch (err) {
+    serverLog.warn('Metadata fetch failed, falling back to provided/URL title', { route: '/api/content', url, error: String(err), posthogDistinctId: auth.userId })
     metadata = { title: fallbackTitle || url, description: '', thumbnail_url: null, duration_minutes: 5 }
   }
 
@@ -82,7 +84,8 @@ export async function POST(req: NextRequest) {
       categories: auth.categories.length ? auth.categories : undefined,
     })
     topics = result.topics
-  } catch {
+  } catch (err) {
+    serverLog.warn('AI content analysis failed, saving without topics', { route: '/api/content', url, error: String(err), posthogDistinctId: auth.userId })
     topics = []
   }
 

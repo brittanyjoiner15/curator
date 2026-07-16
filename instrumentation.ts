@@ -1,5 +1,10 @@
-export function register() {
-  // no-op: exists so Next.js loads this file and wires up onRequestError
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Register the PostHog OTLP logger as the global OpenTelemetry logger provider
+    const { logs } = await import('@opentelemetry/api-logs')
+    const { getLoggerProvider } = await import('./lib/server-logs')
+    logs.setGlobalLoggerProvider(getLoggerProvider())
+  }
 }
 
 export const onRequestError = async (
