@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import type { User, Session } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const verifiedIdentityFor = useRef<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -44,6 +45,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Verified identity for the PostHog support widget: an HMAC of the user id signed
+  // server-side, so support tickets persist across browsers and can't be spoofed.
+  useEffect(() => {
+    const u = session?.user
+    if (!u || verifiedIdentityFor.current === u.id) return
+    verifiedIdentityFor.current = u.id
+    fetch('/api/posthog-identity', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.enabled && data.hash) posthog.setIdentity(data.distinct_id, data.hash)
+      })
+      .catch(() => { verifiedIdentityFor.current = null })
+  }, [session])
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -65,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
+    posthog.clearIdentity()
+    verifiedIdentityFor.current = null
     posthog.reset()
     router.push('/auth')
   }, [router])
