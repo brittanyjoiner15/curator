@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import type { Session } from '@supabase/supabase-js'
+import posthog from 'posthog-js'
 import { WatchItem, BookItem } from '@/types'
 
 type SearchTab = 'watch' | 'books'
@@ -58,6 +59,7 @@ function SearchCaptureInner({
         })
         const data = await res.json()
         if (Array.isArray(data)) {
+          posthog.capture('search_performed', { search_type: tab, results_count: data.length })
           setResults(
             data.map((r: any) =>
               tab === 'watch'
@@ -120,6 +122,15 @@ function SearchCaptureInner({
       if (!res.ok) {
         setError(data.error ?? 'Failed to save')
         return
+      }
+
+      if (selected.kind === 'watch') {
+        posthog.capture('watch_item_saved', { media_type: selected.media_type })
+      } else {
+        posthog.capture('book_saved', {
+          source: 'google_books',
+          added_to_hardcover: data.hardcover?.success ?? false,
+        })
       }
 
       onAdded(

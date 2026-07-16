@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { ContentCard, TopicBadge } from '@/components/ContentCard'
 import { ContentItem } from '@/types'
@@ -60,6 +61,11 @@ export default function BrowsePage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
       const data = await res.json()
+      posthog.capture('ai_suggestions_requested', {
+        max_minutes: maxMinutes,
+        topics_count: selectedTopics.length,
+        found_match: Boolean(data.item),
+      })
       if (data.item) setSuggestion(data.item)
       else setNoMatch(true)
     } catch {

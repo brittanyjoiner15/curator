@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { createClient } from '@supabase/supabase-js'
 import type { User, Session } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,28 +33,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      if (session?.user) posthog.identify(session.user.id, { email: session.user.email })
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.user) posthog.identify(session.user.id, { email: session.user.email })
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error && data.user) {
+      posthog.identify(data.user.id, { email: data.user.email })
+      posthog.capture('user_logged_in')
+    }
     return { error: error?.message ?? null }
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (!error && data.user) {
+      posthog.identify(data.user.id, { email: data.user.email })
+      posthog.capture('user_signed_up')
+    }
     return { error: error?.message ?? null }
   }, [])
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
+    posthog.reset()
     router.push('/auth')
   }, [router])
 

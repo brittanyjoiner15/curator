@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { Session } from '@supabase/supabase-js'
+import posthog from 'posthog-js'
 import { ContentItem, WishlistItem } from '@/types'
 
 export type AddResult =
@@ -47,7 +48,14 @@ function AddContentInner({
         return
       }
 
-      onAdded(data as AddResult)
+      const result = data as AddResult
+      if (result.type === 'content') {
+        posthog.capture('content_captured', { content_type: result.item.type })
+      } else {
+        posthog.capture('wishlist_item_added', { via: 'url_capture', category: result.item.category })
+      }
+
+      onAdded(result)
       setUrl('')
     } catch {
       setError('Failed to reach the server')

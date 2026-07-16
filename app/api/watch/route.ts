@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
+import { captureServerException } from '@/lib/posthog-server'
 
 export async function GET(req: NextRequest) {
   const auth = await getAuthUser(req)
@@ -13,7 +14,10 @@ export async function GET(req: NextRequest) {
     .eq('user_id', auth.userId)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureServerException(new Error(error.message), auth.userId, { route: '/api/watch' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data)
 }
 
@@ -44,6 +48,9 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureServerException(new Error(error.message), auth.userId, { route: '/api/watch' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

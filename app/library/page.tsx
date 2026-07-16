@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { ContentCard } from '@/components/ContentCard'
 import { ContentItem } from '@/types'
@@ -45,7 +46,10 @@ export default function LibraryPage() {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
-    if (res.ok) setItems(prev => prev.filter(i => i.id !== id))
+    if (res.ok) {
+      setItems(prev => prev.filter(i => i.id !== id))
+      posthog.capture('item_deleted', { item_type: 'content' })
+    }
   }
 
   async function handleToggleRead(id: string, read: boolean) {
@@ -58,7 +62,10 @@ export default function LibraryPage() {
       },
       body: JSON.stringify({ read }),
     })
-    if (res.ok) setItems(prev => prev.map(i => i.id === id ? { ...i, read } : i))
+    if (res.ok) {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, read } : i))
+      posthog.capture('item_status_toggled', { item_type: 'content', status: 'read', value: read })
+    }
   }
 
   if (loading || !user) return null

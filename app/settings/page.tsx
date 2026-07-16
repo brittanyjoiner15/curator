@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 
@@ -60,6 +61,7 @@ export default function SettingsPage() {
       setHasKey(true)
       setNewKey('')
       setSaveMessage('Key saved!')
+      posthog.capture('settings_updated', { changed_fields: ['anthropic_api_key'] })
     } else {
       setSaveMessage('Failed to save.')
     }
@@ -79,6 +81,7 @@ export default function SettingsPage() {
       setHasHardcoverKey(true)
       setNewHardcoverKey('')
       setHardcoverSaveMessage('Key saved!')
+      posthog.capture('settings_updated', { changed_fields: ['hardcover_api_key'] })
     } else {
       setHardcoverSaveMessage('Failed to save.')
     }
@@ -97,7 +100,10 @@ export default function SettingsPage() {
       body: JSON.stringify({ regenerate_token: true }),
     })
     const data = await res.json()
-    if (data.api_token) setApiToken(data.api_token)
+    if (data.api_token) {
+      setApiToken(data.api_token)
+      posthog.capture('settings_updated', { changed_fields: ['api_token'] })
+    }
     setRegenerating(false)
   }
 
@@ -125,6 +131,7 @@ export default function SettingsPage() {
       body: JSON.stringify({ categories }),
     })
     setCategoriesSaveMessage(res.ok ? 'Saved!' : 'Failed to save.')
+    if (res.ok) posthog.capture('settings_updated', { changed_fields: ['categories'] })
     setSavingCategories(false)
   }
 

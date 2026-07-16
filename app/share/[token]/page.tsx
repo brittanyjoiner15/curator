@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase'
 import { WishlistCard } from '@/components/WishlistCard'
+import { ShareViewTracker } from '@/components/ShareViewTracker'
 import { WishlistItem } from '@/types'
 
 export default async function PublicWishlistPage({
@@ -36,6 +37,7 @@ export default async function PublicWishlistPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ShareViewTracker itemCount={list.length} />
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Wishlist</h1>
         <p className="text-sm text-gray-500">

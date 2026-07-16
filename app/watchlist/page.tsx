@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { WatchCard } from '@/components/WatchCard'
 import { BookCard } from '@/components/BookCard'
@@ -48,6 +49,7 @@ export default function WatchlistPage() {
     if (!session) return
     setWatchItems(prev => prev.filter(i => i.id !== id))
     await fetch(`/api/watch/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session.access_token}` } })
+    posthog.capture('item_deleted', { item_type: 'watch' })
   }
 
   async function handleToggleWatched(id: string, watched: boolean) {
@@ -58,12 +60,14 @@ export default function WatchlistPage() {
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ watched }),
     })
+    posthog.capture('item_status_toggled', { item_type: 'watch', status: 'watched', value: watched })
   }
 
   async function handleDeleteBook(id: string) {
     if (!session) return
     setBookItems(prev => prev.filter(i => i.id !== id))
     await fetch(`/api/books/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session.access_token}` } })
+    posthog.capture('item_deleted', { item_type: 'book' })
   }
 
   async function handleToggleRead(id: string, read: boolean) {
@@ -74,6 +78,7 @@ export default function WatchlistPage() {
       headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ read }),
     })
+    posthog.capture('item_status_toggled', { item_type: 'book', status: 'read', value: read })
   }
 
   const filteredWatch = watchItems

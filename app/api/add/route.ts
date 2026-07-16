@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
+import { captureServerException } from '@/lib/posthog-server'
 import { getYouTubeVideoId, fetchYouTubeMetadata, isVideoUrl } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
 import { scrapeUrl } from '@/lib/scrape'
@@ -52,7 +53,10 @@ export async function POST(req: NextRequest) {
       .insert({ url, type, user_id: auth.userId, title: metadata.title, description: metadata.description, thumbnail_url: metadata.thumbnail_url, duration_minutes: metadata.duration_minutes, topics })
       .select().single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      captureServerException(new Error(error.message), auth.userId, { route: '/api/add' })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ type: 'content', item: data }, { status: 201 })
   }
 
@@ -97,7 +101,10 @@ export async function POST(req: NextRequest) {
       .insert({ url, user_id: auth.userId, title: scraped.title, description: scraped.description, thumbnail_url: scraped.thumbnail_url, price: scraped.price, category })
       .select().single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      captureServerException(new Error(error.message), auth.userId, { route: '/api/add' })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ type: 'product', item: data }, { status: 201 })
   }
 
@@ -123,6 +130,9 @@ export async function POST(req: NextRequest) {
     .insert({ url, type: 'article', user_id: auth.userId, title: scraped.title, description: scraped.description, thumbnail_url: scraped.thumbnail_url, duration_minutes: scraped.duration_minutes, topics })
     .select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureServerException(new Error(error.message), auth.userId, { route: '/api/add' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ type: 'content', item: data }, { status: 201 })
 }

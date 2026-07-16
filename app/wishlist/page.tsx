@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { WishlistCard, CategoryBadge } from '@/components/WishlistCard'
 import { WishlistItem } from '@/types'
@@ -39,6 +40,7 @@ export default function WishlistPage() {
       })
       const { token } = await res.json()
       const url = `${window.location.origin}/share/${token}`
+      posthog.capture('wishlist_shared')
 
       if (navigator.share) {
         await navigator.share({ title: 'My Wishlist', url })
@@ -60,6 +62,7 @@ export default function WishlistPage() {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
+    posthog.capture('item_deleted', { item_type: 'wishlist' })
   }
 
   async function handleTogglePurchased(id: string, purchased: boolean) {
@@ -73,6 +76,7 @@ export default function WishlistPage() {
       },
       body: JSON.stringify({ purchased }),
     })
+    posthog.capture('item_status_toggled', { item_type: 'wishlist', status: 'purchased', value: purchased })
   }
 
   const filtered = items

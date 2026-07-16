@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
+import { captureServerException } from '@/lib/posthog-server'
 
 export async function GET(req: NextRequest) {
   const auth = await getAuthUser(req)
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (error || !data?.wishlist_share_token) {
+    captureServerException(new Error(error?.message ?? 'Missing wishlist share token'), auth.userId, { route: '/api/wishlist/share' })
     return NextResponse.json({ error: 'Could not get share token' }, { status: 500 })
   }
 

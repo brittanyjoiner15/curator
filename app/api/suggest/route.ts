@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
+import { captureServerException } from '@/lib/posthog-server'
 
 export async function GET(req: NextRequest) {
   const auth = await getAuthUser(req)
@@ -19,7 +20,10 @@ export async function GET(req: NextRequest) {
     .eq('read', false)
     .lte('duration_minutes', maxMinutes)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureServerException(new Error(error.message), auth.userId, { route: '/api/suggest' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   if (!data?.length) return NextResponse.json({ item: null })
 
   const pool = topics.length

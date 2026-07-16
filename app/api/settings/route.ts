@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
+import { captureServerException } from '@/lib/posthog-server'
 import crypto from 'crypto'
 
 export async function GET(req: NextRequest) {
@@ -14,7 +15,10 @@ export async function GET(req: NextRequest) {
     .eq('user_id', auth.userId)
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureServerException(new Error(error.message), auth.userId, { route: '/api/settings' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({
     has_anthropic_key: !!data?.anthropic_api_key,
@@ -56,6 +60,9 @@ export async function PUT(req: NextRequest) {
     .select('api_token')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureServerException(new Error(error.message), auth.userId, { route: '/api/settings' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ success: true, api_token: data?.api_token })
 }
