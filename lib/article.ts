@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { fetchJina } from './jina'
+import { fetchJina, type ScrapeSource } from './jina'
 
 const FETCH_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (compatible; Curator/1.0)',
@@ -42,12 +42,14 @@ export async function scrapeArticle(url: string) {
     if (transcript.length > 100) {
       const wordCount = transcript.split(' ').filter(Boolean).length
       const duration_minutes = Math.max(1, Math.ceil(wordCount / 130)) // ~130 wpm speaking pace
+      const scrape_source: ScrapeSource = 'cheerio'
       return {
         title: (title || jina?.title || '').trim(),
         description: (description || jina?.description || '').trim(),
         thumbnail_url,
         text: transcript.slice(0, 3000),
         duration_minutes,
+        scrape_source,
       }
     }
 
@@ -61,11 +63,14 @@ export async function scrapeArticle(url: string) {
   const wordCount = text.split(' ').filter(Boolean).length
   const duration_minutes = Math.max(1, Math.ceil(wordCount / 200))
 
+  const scrape_source: ScrapeSource = jina ? 'jina' : 'cheerio'
+
   return {
     title: (title || jina?.title || '').trim(),
     description: (description || jina?.description || '').trim(),
     thumbnail_url,
     text: text.slice(0, 3000),
     duration_minutes,
+    scrape_source,
   }
 }

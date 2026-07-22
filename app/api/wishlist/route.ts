@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
-import { captureServerException } from '@/lib/posthog-server'
+import { captureServerException, getPostHogServer } from '@/lib/posthog-server'
 import { serverLog } from '@/lib/server-logs'
 import { scrapeProduct } from '@/lib/product'
 import { analyzeProduct } from '@/lib/claude'
@@ -45,13 +45,19 @@ export async function POST(req: NextRequest) {
 
   if (existing) return NextResponse.json({ error: 'Already in your wishlist' }, { status: 409 })
 
-  let metadata: { title: string; description: string; thumbnail_url: string | null; price: string | null }
+  let metadata: { title: string; description: string; thumbnail_url: string | null; price: string | null; scrape_source?: string }
   try {
     metadata = await scrapeProduct(url)
   } catch (err) {
     serverLog.warn('Product scrape failed, falling back to URL as title', { route: '/api/wishlist', url, error: String(err), posthogDistinctId: auth.userId })
     metadata = { title: url, description: '', thumbnail_url: null, price: null }
   }
+
+  getPostHogServer().capture({
+    distinctId: auth.userId,
+    event: 'url_scraped',
+    properties: { route: '/api/wishlist', url, source: metadata.scrape_source ?? 'failed' },
+  })
 
   let category = 'other'
   if (auth.anthropicApiKey) {
