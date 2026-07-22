@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
-import { captureServerException } from '@/lib/posthog-server'
+import { captureServerException, getPostHogServer } from '@/lib/posthog-server'
 import { serverLog } from '@/lib/server-logs'
 import { getYouTubeVideoId, fetchYouTubeMetadata, isVideoUrl } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     thumbnail_url: string | null
     duration_minutes: number
     text?: string
+    scrape_source?: string
   }
 
   try {
@@ -71,6 +72,15 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     serverLog.warn('Metadata fetch failed, falling back to provided/URL title', { route: '/api/content', url, error: String(err), posthogDistinctId: auth.userId })
     metadata = { title: fallbackTitle || url, description: '', thumbnail_url: null, duration_minutes: 5 }
+  }
+
+  // YouTube metadata comes from the API, not a scrape, so only track scraped pages
+  if (type !== 'youtube') {
+    getPostHogServer().capture({
+      distinctId: auth.userId,
+      event: 'url_scraped',
+      properties: { route: '/api/content', url, source: metadata.scrape_source ?? 'failed' },
+    })
   }
 
   let topics: string[]

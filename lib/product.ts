@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { fetchJina } from './jina'
+import { fetchJina, type ScrapeSource } from './jina'
 
 const FETCH_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (compatible; Curator/1.0)',
@@ -81,10 +81,12 @@ export async function scrapeProduct(url: string) {
   }
 
   // Jina Reader fallback for bot-blocked or JS-rendered product pages
+  let usedJina = false
   if (html === null || !title.trim() || !price) {
     const jina = await fetchJina(url)
     if (!jina && html === null) throw new Error('Failed to fetch product')
     if (jina) {
+      usedJina = true
       title = title.trim() || jina.title
       description = description.trim() || jina.description
       // This is a known product page, so a price regex on the markdown is safe
@@ -92,10 +94,14 @@ export async function scrapeProduct(url: string) {
     }
   }
 
+  const scrape_source: ScrapeSource =
+    html === null ? 'jina' : usedJina ? 'cheerio+jina' : 'cheerio'
+
   return {
     title: title.trim(),
     description: description.trim(),
     thumbnail_url,
     price,
+    scrape_source,
   }
 }

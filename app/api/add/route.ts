@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getAuthUser } from '@/lib/auth-server'
-import { captureServerException } from '@/lib/posthog-server'
+import { captureServerException, getPostHogServer } from '@/lib/posthog-server'
 import { serverLog } from '@/lib/server-logs'
 import { getYouTubeVideoId, fetchYouTubeMetadata, isVideoUrl } from '@/lib/youtube'
 import { scrapeArticle } from '@/lib/article'
@@ -33,12 +33,21 @@ export async function POST(req: NextRequest) {
       .single()
     if (existing) return NextResponse.json({ error: 'Already in your library' }, { status: 409 })
 
-    let metadata: { title: string; description: string; thumbnail_url: string | null; duration_minutes: number; text?: string }
+    let metadata: { title: string; description: string; thumbnail_url: string | null; duration_minutes: number; text?: string; scrape_source?: string }
     try {
       metadata = videoId ? await fetchYouTubeMetadata(videoId) : await scrapeArticle(url)
     } catch (err) {
       serverLog.warn('Video metadata fetch failed, falling back to URL as title', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
       metadata = { title: url, description: '', thumbnail_url: null, duration_minutes: 5 }
+    }
+
+    // YouTube metadata comes from the API, not a scrape, so only track scraped videos
+    if (!videoId) {
+      getPostHogServer().capture({
+        distinctId: auth.userId,
+        event: 'url_scraped',
+        properties: { route: '/api/add', url, source: metadata.scrape_source ?? 'failed' },
+      })
     }
 
     const type = videoId ? 'youtube' : 'video'
@@ -70,8 +79,14 @@ export async function POST(req: NextRequest) {
     scraped = await scrapeUrl(url)
   } catch (err) {
     serverLog.warn('URL scrape failed, falling back to URL as title', { route: '/api/add', url, error: String(err), posthogDistinctId: auth.userId })
-    scraped = { title: url, description: '', thumbnail_url: null, price: null, text: '', duration_minutes: 5 }
+    scraped = { title: url, description: '', thumbnail_url: null, price: null, text: '', duration_minutes: 5, scrape_source: 'failed' }
   }
+
+  getPostHogServer().capture({
+    distinctId: auth.userId,
+    event: 'url_scraped',
+    properties: { route: '/api/add', url, source: scraped.scrape_source },
+  })
 
   // Classify: price found → product, else ask Claude, else default content
   let itemType: 'content' | 'product' = 'content'

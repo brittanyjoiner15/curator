@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { fetchJina } from './jina'
+import { fetchJina, type ScrapeSource } from './jina'
 
 const FETCH_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (compatible; Curator/1.0)',
@@ -92,6 +92,9 @@ export async function scrapeUrl(url: string) {
   const wordCount = text.split(' ').filter(Boolean).length
   const duration_minutes = Math.max(1, Math.ceil(wordCount / 200))
 
+  // Widened so callers can also assign 'failed' in their fallback objects
+  const scrape_source = (jina ? 'jina' : 'cheerio') as ScrapeSource
+
   return {
     title: (title || jina?.title || '').trim(),
     description: (description || jina?.description || '').trim(),
@@ -99,5 +102,6 @@ export async function scrapeUrl(url: string) {
     price,
     text: text.slice(0, 3000),
     duration_minutes,
+    scrape_source,
   }
 }

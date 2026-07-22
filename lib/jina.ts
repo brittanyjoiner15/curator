@@ -1,3 +1,6 @@
+// Which scraper produced the result — reported to PostHog on submit
+export type ScrapeSource = 'jina' | 'cheerio' | 'cheerio+jina' | 'failed'
+
 export interface JinaResult {
   title: string
   description: string
