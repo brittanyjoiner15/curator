@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio'
+import { fetchJina } from './jina'
 
 const FETCH_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (compatible; Curator/1.0)',
@@ -6,57 +7,63 @@ const FETCH_HEADERS = {
 }
 
 export async function scrapeArticle(url: string) {
-  const res = await fetch(url, {
-    headers: FETCH_HEADERS,
-    signal: AbortSignal.timeout(10000),
-  })
+  // Jina Reader is the primary text source (renders JS, bypasses bot blocks).
+  // The raw HTML fetch feeds cheerio for metadata (og tags) and text fallback.
+  const [jina, html] = await Promise.all([
+    fetchJina(url),
+    fetch(url, { headers: FETCH_HEADERS, signal: AbortSignal.timeout(10000) })
+      .then(res => (res.ok ? res.text() : null))
+      .catch(() => null),
+  ])
+  if (!jina && html === null) throw new Error('Failed to fetch article')
 
-  if (!res.ok) throw new Error(`Failed to fetch article: ${res.status}`)
+  let title = ''
+  let description = ''
+  let thumbnail_url: string | null = null
+  let cheerioText = ''
 
-  const html = await res.text()
-  const $ = cheerio.load(html)
+  if (html !== null) {
+    const $ = cheerio.load(html)
 
-  const title =
-    $('meta[property="og:title"]').attr('content') ||
-    $('title').text() ||
-    $('h1').first().text()
+    title =
+      $('meta[property="og:title"]').attr('content') ||
+      $('title').text() ||
+      $('h1').first().text()
 
-  const description =
-    $('meta[name="description"]').attr('content') ||
-    $('meta[property="og:description"]').attr('content') ||
-    ''
+    description =
+      $('meta[name="description"]').attr('content') ||
+      $('meta[property="og:description"]').attr('content') ||
+      ''
 
-  const thumbnail_url =
-    $('meta[property="og:image"]').attr('content') || null
+    thumbnail_url = $('meta[property="og:image"]').attr('content') || null
 
-  // Starter Story: prefer transcript content
-  const transcript = $('#tab-pane-transcript-right').text().replace(/\s+/g, ' ').trim()
-  if (transcript.length > 100) {
-    const wordCount = transcript.split(' ').filter(Boolean).length
-    const duration_minutes = Math.max(1, Math.ceil(wordCount / 130)) // ~130 wpm speaking pace
-    return {
-      title: title.trim(),
-      description: description.trim(),
-      thumbnail_url,
-      text: transcript.slice(0, 3000),
-      duration_minutes,
+    // Starter Story: prefer transcript content
+    const transcript = $('#tab-pane-transcript-right').text().replace(/\s+/g, ' ').trim()
+    if (transcript.length > 100) {
+      const wordCount = transcript.split(' ').filter(Boolean).length
+      const duration_minutes = Math.max(1, Math.ceil(wordCount / 130)) // ~130 wpm speaking pace
+      return {
+        title: (title || jina?.title || '').trim(),
+        description: (description || jina?.description || '').trim(),
+        thumbnail_url,
+        text: transcript.slice(0, 3000),
+        duration_minutes,
+      }
     }
+
+    // Text fallback for when Jina is unavailable
+    $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="menu"], [class*="ad-"], [id*="nav"]').remove()
+    const articleEl = $('article, [role="main"], main, .post-content, .article-body, .entry-content').first()
+    cheerioText = (articleEl.length ? articleEl : $('body')).text()
   }
 
-  // Strip noise
-  $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="menu"], [class*="ad-"], [id*="nav"]').remove()
-
-  // Prefer semantic article containers
-  const articleEl = $('article, [role="main"], main, .post-content, .article-body, .entry-content').first()
-  const rawText = (articleEl.length ? articleEl : $('body')).text()
-  const text = rawText.replace(/\s+/g, ' ').trim()
-
+  const text = (jina?.content || cheerioText).replace(/\s+/g, ' ').trim()
   const wordCount = text.split(' ').filter(Boolean).length
   const duration_minutes = Math.max(1, Math.ceil(wordCount / 200))
 
   return {
-    title: title.trim(),
-    description: description.trim(),
+    title: (title || jina?.title || '').trim(),
+    description: (description || jina?.description || '').trim(),
     thumbnail_url,
     text: text.slice(0, 3000),
     duration_minutes,
