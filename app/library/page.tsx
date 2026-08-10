@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { ContentCard } from '@/components/ContentCard'
+import { ContentViewer } from '@/components/ContentViewer'
 import { ContentItem } from '@/types'
 
 const TIME_PRESETS = [
@@ -21,6 +22,7 @@ export default function LibraryPage() {
   const router = useRouter()
   const [items, setItems] = useState<ContentItem[]>([])
   const [itemsLoading, setItemsLoading] = useState(true)
+  const [viewingItem, setViewingItem] = useState<ContentItem | null>(null)
   const [showRead, setShowRead] = useState(false)
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
   const [topicsOpen, setTopicsOpen] = useState(false)
@@ -64,8 +66,14 @@ export default function LibraryPage() {
     })
     if (res.ok) {
       setItems(prev => prev.map(i => i.id === id ? { ...i, read } : i))
+      setViewingItem(prev => prev && prev.id === id ? { ...prev, read } : prev)
       posthog.capture('item_status_toggled', { item_type: 'content', status: 'read', value: read })
     }
+  }
+
+  function handleOpen(item: ContentItem) {
+    setViewingItem(item)
+    posthog.capture('item_opened', { item_type: item.type })
   }
 
   if (loading || !user) return null
@@ -208,9 +216,19 @@ export default function LibraryPage() {
               item={item}
               onDelete={handleDelete}
               onToggleRead={handleToggleRead}
+              onOpen={handleOpen}
             />
           ))}
         </div>
+      )}
+
+      {viewingItem && session && (
+        <ContentViewer
+          item={viewingItem}
+          accessToken={session.access_token}
+          onClose={() => setViewingItem(null)}
+          onToggleRead={handleToggleRead}
+        />
       )}
     </div>
   )

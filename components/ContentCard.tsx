@@ -33,11 +33,13 @@ export function ContentCard({
   large = false,
   onDelete,
   onToggleRead,
+  onOpen,
 }: {
   item: ContentItem
   large?: boolean
   onDelete?: (id: string) => void
   onToggleRead?: (id: string, read: boolean) => void
+  onOpen?: (item: ContentItem) => void
 }) {
   const durationLabel =
     item.type === 'article'
@@ -46,15 +48,9 @@ export function ContentCard({
 
   const hasActions = onDelete || onToggleRead
 
-  return (
-    <div className={`group flex gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden ${large ? 'flex-col' : ''}`}>
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`flex gap-3 min-w-0 flex-1 ${large ? 'flex-col' : ''}`}
-      >
-        {item.thumbnail_url && (
+  const cardContent = (
+    <>
+      {item.thumbnail_url && (
           <div className={`relative shrink-0 bg-gray-100 ${large ? 'w-full h-48' : 'w-24 h-24 sm:w-32 sm:h-32'}`}>
             <Image
               src={item.thumbnail_url}
@@ -84,7 +80,28 @@ export function ContentCard({
             ))}
           </div>
         </div>
-      </a>
+    </>
+  )
+
+  return (
+    <div className={`group flex gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden ${large ? 'flex-col' : ''}`}>
+      {onOpen ? (
+        <button
+          onClick={() => onOpen(item)}
+          className={`flex gap-3 min-w-0 flex-1 text-left ${large ? 'flex-col' : ''}`}
+        >
+          {cardContent}
+        </button>
+      ) : (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex gap-3 min-w-0 flex-1 ${large ? 'flex-col' : ''}`}
+        >
+          {cardContent}
+        </a>
+      )}
 
       {hasActions && (
         <div className="flex flex-col justify-center gap-1 pr-3 py-3 shrink-0">

@@ -6,6 +6,24 @@ const FETCH_HEADERS = {
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 }
 
+// Full article text for the in-app reader (unlike scrapeArticle, not truncated to 3000 chars).
+export async function fetchArticleFullText(url: string): Promise<{ content: string; source: ScrapeSource }> {
+  const jina = await fetchJina(url)
+  if (jina?.content) return { content: jina.content, source: 'jina' }
+
+  const html = await fetch(url, { headers: FETCH_HEADERS, signal: AbortSignal.timeout(10000) })
+    .then(res => (res.ok ? res.text() : null))
+    .catch(() => null)
+  if (html === null) return { content: '', source: 'failed' }
+
+  const $ = cheerio.load(html)
+  $('script, style, nav, header, footer, aside, [class*="sidebar"], [class*="menu"], [class*="ad-"], [id*="nav"]').remove()
+  const articleEl = $('article, [role="main"], main, .post-content, .article-body, .entry-content').first()
+  const text = (articleEl.length ? articleEl : $('body')).text().replace(/[ \t]+/g, ' ').replace(/\n\s*\n\s*/g, '\n\n').trim()
+
+  return { content: text, source: text ? 'cheerio' : 'failed' }
+}
+
 export async function scrapeArticle(url: string) {
   // Jina Reader is the primary text source (renders JS, bypasses bot blocks).
   // The raw HTML fetch feeds cheerio for metadata (og tags) and text fallback.
