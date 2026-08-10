@@ -6,9 +6,11 @@ import { useAuth } from '@/lib/auth-context'
 import { AddContent, AddResult } from '@/components/AddContent'
 import { SearchCapture, SearchCaptureResult } from '@/components/SearchCapture'
 import { ContentCard } from '@/components/ContentCard'
+import { ContentViewer } from '@/components/ContentViewer'
 import { WishlistCard } from '@/components/WishlistCard'
 import { WatchCard } from '@/components/WatchCard'
 import { BookCard } from '@/components/BookCard'
+import { ContentItem } from '@/types'
 
 type CaptureTab = 'url' | 'search'
 
@@ -21,6 +23,7 @@ function CapturePageInner() {
   const [tab, setTab] = useState<CaptureTab>(defaultTab)
   const [urlResult, setUrlResult] = useState<AddResult | null>(null)
   const [searchResult, setSearchResult] = useState<SearchCaptureResult | null>(null)
+  const [viewingItem, setViewingItem] = useState<ContentItem | null>(null)
 
   useEffect(() => {
     if (!loading && !user) router.push('/auth')
@@ -34,6 +37,20 @@ function CapturePageInner() {
   function reset() {
     setUrlResult(null)
     setSearchResult(null)
+  }
+
+  async function handleToggleRead(id: string, read: boolean) {
+    if (!session) return
+    await fetch(`/api/content/${id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ read }),
+    })
+    setUrlResult(prev => prev && prev.type === 'content' ? { ...prev, item: { ...prev.item, read } } : prev)
+    setViewingItem(prev => prev ? { ...prev, read } : prev)
   }
 
   return (
@@ -86,7 +103,7 @@ function CapturePageInner() {
           </div>
 
           {urlResult.type === 'content' ? (
-            <ContentCard item={urlResult.item} />
+            <ContentCard item={urlResult.item} onToggleRead={handleToggleRead} onOpen={setViewingItem} />
           ) : (
             <WishlistCard item={urlResult.item} />
           )}
@@ -129,6 +146,15 @@ function CapturePageInner() {
             Save another
           </button>
         </div>
+      )}
+
+      {viewingItem && session && (
+        <ContentViewer
+          item={viewingItem}
+          accessToken={session.access_token}
+          onClose={() => setViewingItem(null)}
+          onToggleRead={handleToggleRead}
+        />
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useAuth } from '@/lib/auth-context'
 import { ContentCard, TopicBadge } from '@/components/ContentCard'
+import { ContentViewer } from '@/components/ContentViewer'
 import { ContentItem } from '@/types'
 
 const TIME_PRESETS = [
@@ -25,6 +26,7 @@ export default function BrowsePage() {
   const [suggestion, setSuggestion] = useState<ContentItem | null | undefined>(undefined)
   const [fetching, setFetching] = useState(false)
   const [noMatch, setNoMatch] = useState(false)
+  const [viewingItem, setViewingItem] = useState<ContentItem | null>(null)
 
   useEffect(() => {
     if (!loading && !user) router.push('/auth')
@@ -73,6 +75,26 @@ export default function BrowsePage() {
     } finally {
       setFetching(false)
     }
+  }
+
+  async function handleToggleRead(id: string, read: boolean) {
+    if (!session) return
+    await fetch(`/api/content/${id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ read }),
+    })
+    setSuggestion(prev => prev ? { ...prev, read } : prev)
+    setViewingItem(prev => prev ? { ...prev, read } : prev)
+    posthog.capture('item_status_toggled', { item_type: 'content', status: 'read', value: read })
+  }
+
+  function handleOpen(item: ContentItem) {
+    setViewingItem(item)
+    posthog.capture('item_opened', { item_type: item.type })
   }
 
   if (loading || !user) return null
@@ -163,17 +185,8 @@ export default function BrowsePage() {
               })
               setSuggestion(undefined)
             }}
-            onToggleRead={async (id, read) => {
-              await fetch(`/api/content/${id}`, {
-                method: 'PATCH',
-                headers: {
-                  Authorization: `Bearer ${session!.access_token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ read }),
-              })
-              setSuggestion(prev => prev ? { ...prev, read } : prev)
-            }}
+            onToggleRead={handleToggleRead}
+            onOpen={handleOpen}
           />
           <button
             onClick={handleSurpriseMe}
@@ -182,6 +195,15 @@ export default function BrowsePage() {
             Try another
           </button>
         </div>
+      )}
+
+      {viewingItem && session && (
+        <ContentViewer
+          item={viewingItem}
+          accessToken={session.access_token}
+          onClose={() => setViewingItem(null)}
+          onToggleRead={handleToggleRead}
+        />
       )}
     </div>
   )
